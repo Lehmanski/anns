@@ -53,7 +53,6 @@ class Model():
 								 tf.random_normal([self.size_patch_3,self.size_patch_3,self.n_out_channels_2,self.n_out_channels_3]),
 								 strides=[1,2,2,1],
 								 padding='SAME')
-		print(self.conv3.shape)
 
 		'''
 		Fully Connected Output Layer
@@ -61,7 +60,6 @@ class Model():
 		# reshape layer before
 		tmp = np.prod(self.conv3.shape.as_list()[1:])
 		self.conv3_flat = tf.reshape(self.conv3, [-1, tmp])
-		print(self.conv3_flat.shape)
 
 		self.dense1 = tf.layers.dense(self.conv3_flat,
 									  self.n_dense_neurons_1,
@@ -84,7 +82,7 @@ class Model():
 		'''
 		self.loss = tf.reduce_mean(tf.square(self.dense_out-self.target))
 
-		self.train_step = tf.train.RMSPropOptimizer(0.5,momentum=0.1).minimize(self.loss)
+		self.train_step = tf.train.AdamOptimizer(learning_rate=0.1).minimize(self.loss)
 
 		self.sess = tf.Session()
 		self.init = tf.global_variables_initializer()
@@ -96,7 +94,7 @@ class Model():
 
 		inp = np.reshape(X, [-1,*X[0].shape])
 		target = np.reshape(Y,[-1,np.multiply(*Y[0].shape)])
-
+		self.targets = target
 		self.feed_dict = {self.input_layer: inp,
 							  self.target: target}
 
@@ -105,9 +103,9 @@ class Model():
 
 
 
-	def training(self,epochs=10):
+	def training(self,epochs=10,batch_size=100):
 		for i in range(epochs):
-			X,Y = self.dh.next(batch_size=100)
+			X,Y = self.dh.next(batch_size=batch_size)
 			inp = np.reshape(X, [-1,*X[0].shape])
 			target = np.reshape(Y,[-1,np.multiply(*Y[0].shape)])
 			

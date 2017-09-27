@@ -10,7 +10,7 @@ from dataHandler import DataHandler as DH
 
 
 
-in_path = '/home/me/Datasets/mixed_dataset/'
+in_path = '/home/me/Datasets/mixed_dataset_subset/'
 
 dh = DH(in_path = in_path, scaling = 0.1, batch_size = 20)
 dh.read()
@@ -25,11 +25,16 @@ print(Y[0].shape)
 M = Model(input_shape=X[0].shape, output_shape=Y[0].shape, dataHandler=dh)
 
 
-for e in [100,200,1000]:
+for e in [200,1000]:
 	M.training(epochs=e)
 	M.predict()
 
-	for o in M.output[0]:
+	for ix,o in enumerate(M.output[0]):
+		if ix > 3:
+			continue
 		o = o.reshape(Y[0].shape)
-		plt.imshow(o)
+		p = M.targets[ix].reshape(Y[0].shape)
+		t = np.hstack((o,p))
+		plt.imshow(t)
+		plt.colorbar()
 		plt.show()

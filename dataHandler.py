@@ -42,12 +42,12 @@ class DataHandler():
 			d_map = np.load(d_map_path)
 			keys = d_map.keys()
 			data = d_map.items()
-			# argsort, so that the line up with images
+			# argsort, so that they line up with images
 			idx = np.argsort(keys)
 			keys = [keys[i] for i in idx]
 			data = [data[i][1] for i in idx]
 			for p,d in zip(jpgs,data):
-				d = imresize(d, self.scaling)
+				d = imresize(d, self.scaling)/255
 				data_holder[p] = [p,d]
 
 		self.n_items = len(data_holder.keys())
