@@ -10,9 +10,9 @@ from dataHandler import DataHandler as DH
 
 
 
-in_path = '/home/me/Datasets/mixed_dataset_subset/'
+in_path = '/home/me/Datasets/mixed_dataset/'
 
-dh = DH(in_path = in_path, scaling = 0.25, batch_size = 20)
+dh = DH(in_path = in_path, scaling = 0.1, batch_size = 20)
 dh.read()
 X,Y = dh.next()
 print(X[0].shape)
@@ -25,7 +25,7 @@ print(Y[0].shape)
 M = Model(input_shape=X[0].shape, output_shape=Y[0].shape, dataHandler=dh)
 
 
-for e in [2,100,200]:
+for e in [100,200,1000]:
 	M.training(epochs=e)
 	M.predict()
 
