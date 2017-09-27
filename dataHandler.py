@@ -67,9 +67,9 @@ class DataHandler():
 		X = []
 		Y = []
 		if not batch_size is None:
-			idx = np.random.permutation(len(self.training_data_holder))[:batch_size]
+			idx = np.random.randint(len(self.training_data_holder),size=[batch_size])
 		else:
-			idx = np.random.permutation(len(self.training_data_holder))[:self.batch_size]
+			idx = np.random.randint(len(self.training_data_holder),size=[self.batch_size])
 
 		for i in idx:
 			d = self.training_data_holder[i]
