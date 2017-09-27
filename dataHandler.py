@@ -66,8 +66,25 @@ class DataHandler():
 	def next(self, batch_size=None):
 		X = []
 		Y = []
-		idx = np.random.permutation(len(self.training_data_holder))[:self.batch_size]
+		if not batch_size is None:
+			idx = np.random.permutation(len(self.training_data_holder))[:batch_size]
+		else:
+			idx = np.random.permutation(len(self.training_data_holder))[:self.batch_size]
+
 		for i in idx:
+			d = self.training_data_holder[i]
+			image = imresize(imread(d[0])[:,:,:-1],self.scaling)
+			depth_map = d[1]
+			X.append(image)
+			Y.append(depth_map)
+		X = np.array(X)
+		Y = np.array(Y)
+		return X,Y
+
+	def testingData(self, batch_size=None):
+		X = []
+		Y = []
+		for i in range(len(self.testing_data_holder)):
 			d = self.training_data_holder[i]
 			image = imresize(imread(d[0])[:,:,:-1],self.scaling)
 			depth_map = d[1]

@@ -1,5 +1,6 @@
 import numpy as np
 import tensorflow as tf
+import matplotlib.pyplot as plt 
 from model import Model 
 
 from os import path, listdir
@@ -21,8 +22,14 @@ print(Y[0].shape)
 # tensorflow part
 '''
 
-M = Model(input_shape=X[0].shape, output_shape=Y[0].shape)
+M = Model(input_shape=X[0].shape, output_shape=Y[0].shape, dataHandler=dh)
 
 
-for i in range(100):
-	M.training(dh)
+for e in [2,100,200]:
+	M.training(epochs=e)
+	M.predict()
+
+	for o in M.output[0]:
+		o = o.reshape(Y[0].shape)
+		plt.imshow(o)
+		plt.show()

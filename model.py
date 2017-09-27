@@ -4,10 +4,10 @@ import tensorflow as tf
 from dataHandler import DataHandler as DH 
 
 class Model():
-	def __init__(self, input_shape, output_shape):
+	def __init__(self, input_shape, output_shape,dataHandler=None):
 		self.input_shape = input_shape
 		self.output_shape = output_shape
-
+		self.dh = dataHandler
 		# graph parameters
 		self.size_patch_1 = 5
 		self.size_patch_2 = 5
@@ -15,7 +15,8 @@ class Model():
 		self.n_out_channels_1 = 32 # output channels frist layer
 		self.n_out_channels_2 = 64 # output channels second layer
 		self.n_out_channels_3 = 32 # output channels second layer
-		self.n_dense_neurons = np.multiply(*self.output_shape)# number of densely connected neurons in output layer
+		self.n_dense_neurons_1 = 1024
+		self.n_dense_neurons_out = np.multiply(*self.output_shape)# number of densely connected neurons in output layer
 		self.n_outputs = np.multiply(*self.output_shape)# 
 
 
@@ -61,33 +62,51 @@ class Model():
 		self.conv3_flat = tf.reshape(self.conv3, [-1, 17*30*32])
 		print(self.conv3_flat.shape)
 
-		self.dense = tf.layers.dense(self.conv3_flat, 
-									self.n_dense_neurons, 
-									activation=tf.nn.relu)
+		self.dense1 = tf.layers.dense(self.conv3_flat,
+									  self.n_dense_neurons_1,
+									  activation=tf.nn.relu)
+
+		self.dense_out = tf.layers.dense(self.dense1, 
+									self.n_dense_neurons_out, 
+									activation=tf.nn.sigmoid)
 
 		'''
 		Dropout Layer
 		'''
 		"""
-		self.dropout = tf.layers.dropout(self.dense, 
+		self.dropout = tf.layers.dropout(self.dense_out, 
 										rate=0.4)
 		"""
 
 		'''
 		Loss
 		'''
-		self.loss = tf.reduce_mean(tf.square(self.dense-self.target))
+		self.loss = tf.reduce_mean(tf.square(self.dense_out-self.target))
 
-		self.train_step = tf.train.GradientDescentOptimizer(learning_rate=0.003).minimize(self.loss)
+		self.train_step = tf.train.RMSPropOptimizer(0.03,momentum=0.5).minimize(self.loss)
 
-		
-
-	def training(self,dh):
 		self.sess = tf.Session()
 		self.init = tf.global_variables_initializer()
 		self.sess.run(self.init)
-		for i in range(100):
-			X,Y = dh.next()
+
+
+	def predict(self):
+		X,Y = self.dh.testingData()
+
+		inp = np.reshape(X, [-1,135,240,3])
+		target = np.reshape(Y,[-1,135*240])
+
+		self.feed_dict = {self.input_layer: inp,
+							  self.target: target}
+
+		self.output = self.sess.run([self.dense_out],
+						  	feed_dict=self.feed_dict)
+
+
+
+	def training(self,epochs=10):
+		for i in range(epochs):
+			X,Y = self.dh.next(batch_size=10)
 			inp = np.reshape(X, [-1,135,240,3])
 			target = np.reshape(Y,[-1,135*240])
 			
