@@ -17,11 +17,11 @@ class Model():
 
 		self.n_out_channels_1 = 8 # output channels frist layer
 		self.n_out_channels_2 = 16 # output channels second layer
-		self.n_out_channels_3 = 16 # output channels third layer
-		self.n_out_channels_4 = 32 # output channels fourth layer
-		self.n_out_channels_5 = 64 # output channels firth layer
+		self.n_out_channels_3 = 32 # output channels third layer
+		self.n_out_channels_4 = 64 # output channels fourth layer
+		self.n_out_channels_5 = 128 # output channels firth layer
 
-		self.n_dense_neurons_1 = 512
+		self.n_dense_neurons_1 = 1024
 		self.n_dense_neurons_2 = 2048
 		self.n_dense_neurons_out = np.multiply(*self.output_shape)# number of densely connected neurons in output layer
 		self.n_outputs = np.multiply(*self.output_shape)# 
@@ -42,7 +42,7 @@ class Model():
 		First Layer
 		'''
 		self.conv1 = tf.nn.conv2d(self.input_layer,
-								 tf.random_uniform([self.size_patch_1,self.size_patch_1,3,self.n_out_channels_1]),
+								 tf.random_normal([self.size_patch_1,self.size_patch_1,3,self.n_out_channels_1]),
 								 strides=[1,2,2,1],
 								 padding='SAME')
 
@@ -58,7 +58,7 @@ class Model():
 		Second Layer
 		'''
 		self.conv2 = tf.nn.conv2d(self.conv1_drop,
-								 tf.random_uniform([self.size_patch_2,self.size_patch_2,self.n_out_channels_1,self.n_out_channels_2]),
+								 tf.random_normal([self.size_patch_2,self.size_patch_2,self.n_out_channels_1,self.n_out_channels_2]),
 								 strides=[1,2,2,1],
 								 padding='SAME')
 
@@ -128,15 +128,16 @@ class Model():
 
 		self.dense1 = tf.layers.dense(self.flat,
 									  self.n_dense_neurons_1,
-									  activation=tf.nn.tanh)
-		self.dense1_drop = tf.nn.dropout(self.dense1, 0.6)
-		'''
-		self.dense2 = tf.layers.dense(self.dense1,
-									  self.n_dense_neurons_2,
 									  activation=tf.nn.relu)
-		'''
+		self.dense1_drop = tf.nn.dropout(self.dense1, 0.6)
+		
+		self.dense2 = tf.layers.dense(self.dense1_drop,
+									  self.n_dense_neurons_2,
+									  activation=tf.nn.tanh)
+		self.dense2_drop = tf.nn.dropout(self.dense2, 0.6)
+		
 
-		self.dense_out = tf.layers.dense(self.dense1_drop, 
+		self.dense_out = tf.layers.dense(self.dense2_drop, 
 									self.n_dense_neurons_out, 
 									activation=tf.nn.sigmoid)
 
