@@ -17,8 +17,8 @@ class DataHandler():
 
 	def read(self, in_path = None):
 		data_holder = {}
-		self.training_data_holder = {}
-		self.testing_data_holder = {}
+		self.training_data_holder = []
+		self.testing_data_holder = []
 		'''
 		To save memory, we will only load paths to images and load an image
 		on demand while training.
@@ -48,6 +48,8 @@ class DataHandler():
 			data = [data[i][1] for i in idx]
 			for p,d in zip(jpgs,data):
 				d = imresize(d, self.scaling)/255
+				if d.max()==0:
+					continue
 				data_holder[p] = [p,d]
 
 		self.n_items = len(data_holder.keys())
