@@ -12,7 +12,8 @@ class DataHandler():
 		self.scaling = scaling
 
 
-
+	def read2(self, in_path):
+		pass
 
 
 	def read(self, in_path = None):
