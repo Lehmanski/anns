@@ -16,6 +16,7 @@ class Model():
 		self.n_out_channels_2 = 64 # output channels second layer
 		self.n_out_channels_3 = 32 # output channels second layer
 		self.n_dense_neurons_1 = 1024
+		self.n_dense_neurons_2 = 2048
 		self.n_dense_neurons_out = np.multiply(*self.output_shape)# number of densely connected neurons in output layer
 		self.n_outputs = np.multiply(*self.output_shape)# 
 
@@ -38,18 +39,33 @@ class Model():
 								 tf.random_normal([self.size_patch_1,self.size_patch_1,3,self.n_out_channels_1]),
 								 strides=[1,2,2,1],
 								 padding='SAME')
+
+		self.conv1_pool = tf.nn.max_pool(self.conv1,
+										 ksize=[1,2,2,1],
+										 strides=[1,2,2,1],
+										 padding='SAME')
+
+		self.conv1_drop = tf.nn.dropout(self.conv1_pool, 0.9)
 		'''
 		Second Layer
 		'''
-		self.conv2 = tf.nn.conv2d(self.conv1,
+		self.conv2 = tf.nn.conv2d(self.conv1_drop,
 								 tf.random_normal([self.size_patch_2,self.size_patch_2,self.n_out_channels_1,self.n_out_channels_2]),
 								 strides=[1,2,2,1],
 								 padding='SAME')
 
+
+		self.conv2_pool = tf.nn.max_pool(self.conv2,
+										 ksize=[1,2,2,1],
+										 strides=[1,2,2,1],
+										 padding='SAME')
+
+		self.conv2_drop = tf.nn.dropout(self.conv2_pool, 0.9)
+
 		'''
 		Third Layer
 		'''
-		self.conv3 = tf.nn.conv2d(self.conv2,
+		self.conv3 = tf.nn.conv2d(self.conv2_drop,
 								 tf.random_normal([self.size_patch_3,self.size_patch_3,self.n_out_channels_2,self.n_out_channels_3]),
 								 strides=[1,2,2,1],
 								 padding='SAME')
@@ -63,19 +79,15 @@ class Model():
 
 		self.dense1 = tf.layers.dense(self.conv3_flat,
 									  self.n_dense_neurons_1,
+									  activation=tf.nn.tanh)
+
+		self.dense2 = tf.layers.dense(self.dense1,
+									  self.n_dense_neurons_2,
 									  activation=tf.nn.relu)
 
-		self.dense_out = tf.layers.dense(self.dense1, 
+		self.dense_out = tf.layers.dense(self.dense2, 
 									self.n_dense_neurons_out, 
 									activation=tf.nn.sigmoid)
-
-		'''
-		Dropout Layer
-		'''
-		"""
-		self.dropout = tf.layers.dropout(self.dense_out, 
-										rate=0.4)
-		"""
 
 		'''
 		Loss
