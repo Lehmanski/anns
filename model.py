@@ -4,25 +4,25 @@ import tensorflow as tf
 from dataHandler import DataHandler as DH 
 
 class Model():
-	def __init__(self, input_shape, output_shape,dataHandler=None):
+	def __init__(self, input_shape, output_shape, dataHandler=None):
 		self.input_shape = input_shape
 		self.output_shape = output_shape
 		self.dh = dataHandler
 		# graph parameters
-		self.size_patch_1 = 7
+		self.size_patch_1 = 3
 		self.size_patch_2 = 5
-		self.size_patch_3 = 5
-		self.size_patch_4 = 3
-		self.size_patch_5 = 3
+		self.size_patch_3 = 7
+		self.size_patch_4 = 5
+		self.size_patch_5 = 5
 
-		self.n_out_channels_1 = 8 # output channels frist layer
-		self.n_out_channels_2 = 16 # output channels second layer
-		self.n_out_channels_3 = 32 # output channels third layer
-		self.n_out_channels_4 = 64 # output channels fourth layer
-		self.n_out_channels_5 = 128 # output channels firth layer
+		self.n_out_channels_1 = 16 # output channels frist layer
+		self.n_out_channels_2 = 32 # output channels second layer
+		self.n_out_channels_3 = 64 # output channels third layer
+		self.n_out_channels_4 = 128 # output channels fourth layer
+		self.n_out_channels_5 = 256 # output channels firth layer
 
-		self.n_dense_neurons_1 = 1024
-		self.n_dense_neurons_2 = 2048
+		self.n_dense_neurons_1 = 256
+		self.n_dense_neurons_2 = 256
 		self.n_dense_neurons_out = np.multiply(*self.output_shape)# number of densely connected neurons in output layer
 		self.n_outputs = np.multiply(*self.output_shape)# 
 
@@ -80,30 +80,31 @@ class Model():
 		#						 padding='SAME',
 		#						 activation=None)
 		self.conv3 = tf.nn.conv2d(self.conv2_drop,
-								 tf.random_uniform([self.size_patch_3,self.size_patch_3,self.n_out_channels_2,self.n_out_channels_3]),
+								 tf.random_normal([self.size_patch_3,self.size_patch_3,self.n_out_channels_2,self.n_out_channels_3]),
 								 strides=[1,2,2,1],
 								 padding='SAME')
-
+		
 		self.conv3_pool = tf.nn.max_pool(self.conv3,
 										 ksize=[1,2,2,1],
 										 strides=[1,2,2,1],
 										 padding='SAME')
-
+		
 		self.conv3_drop = tf.nn.dropout(self.conv3_pool, 0.6)
+
 		'''
 		Fourth Layer
 		'''
 		self.conv4 = tf.nn.conv2d(self.conv3_drop,
-								 tf.random_uniform([self.size_patch_4,self.size_patch_4,self.n_out_channels_3,self.n_out_channels_4]),
+								 tf.random_normal([self.size_patch_4,self.size_patch_4,self.n_out_channels_3,self.n_out_channels_4]),
 								 strides=[1,2,2,1],
 								 padding='SAME')
-
+		'''
 		self.conv4_pool = tf.nn.max_pool(self.conv4,
 										 ksize=[1,2,2,1],
 										 strides=[1,2,2,1],
 										 padding='SAME')
-
-		self.conv4_drop = tf.nn.dropout(self.conv4_pool, 0.6)
+		'''
+		self.conv4_drop = tf.nn.dropout(self.conv4, 0.6)
 		'''
 		Fifth Layer
 		'''
@@ -111,13 +112,13 @@ class Model():
 								 tf.random_uniform([self.size_patch_5,self.size_patch_5,self.n_out_channels_4,self.n_out_channels_5]),
 								 strides=[1,2,2,1],
 								 padding='SAME')
-
+		'''
 		self.conv5_pool = tf.nn.max_pool(self.conv5,
 										 ksize=[1,2,2,1],
 										 strides=[1,2,2,1],
 										 padding='SAME')
-
-		self.conv5_drop = tf.nn.dropout(self.conv5_pool, 0.6)
+		'''
+		self.conv5_drop = tf.nn.dropout(self.conv5, 0.6)
 
 		'''
 		Fully Connected Output Layer
@@ -135,7 +136,6 @@ class Model():
 									  self.n_dense_neurons_2,
 									  activation=tf.nn.tanh)
 		self.dense2_drop = tf.nn.dropout(self.dense2, 0.6)
-		
 
 		self.dense_out = tf.layers.dense(self.dense2_drop, 
 									self.n_dense_neurons_out, 
@@ -144,9 +144,17 @@ class Model():
 		'''
 		Loss
 		'''
-		self.loss = tf.reduce_mean(tf.square(self.dense_out-self.target))
+		D = tf.subtract(self.dense_out,self.target)
 
-		self.train_step = tf.train.AdamOptimizer(learning_rate=0.1).minimize(self.loss)
+		D_sum = tf.reduce_sum(D)
+		D_sq = tf.square(D)
+
+		D_sum_sq = tf.square(D_sum)
+		D_sq_sum = tf.reduce_sum(D_sq)
+
+		self.loss = tf.reduce_mean(D_sum_sq/self.n_outputs - D_sq_sum/(2*self.n_outputs**2))
+		#self.loss = D_sq_sum
+		self.train_step = tf.train.AdamOptimizer(1e-2).minimize(self.loss)
 
 		self.sess = tf.Session()
 		self.init = tf.global_variables_initializer()
@@ -157,7 +165,7 @@ class Model():
 		if type  == 'test':
 			X,Y = self.dh.testingData()
 		elif type == 'train':
-			X,Y = self.dh.next(12)
+			X,Y = self.dh.next()
 
 		self.X = np.reshape(X, [-1,*X[0].shape])
 		self.Y = np.reshape(Y,[-1,np.multiply(*Y[0].shape)])
@@ -169,13 +177,16 @@ class Model():
 
 
 
-	def training(self,epochs=10,batch_size=100):
+	def training(self,epochs=10,batch_size=None):
 		hist = []
 		mean_over = 10
 		for i in range(epochs):
-			X,Y = self.dh.next(batch_size=batch_size)
+			if not batch_size is None:
+				X,Y = self.dh.next(batch_size=batch_size)
+			else:
+				X,Y = self.dh.next()
 			inp = np.reshape(X, [-1,*X[0].shape])
-			target = np.reshape(Y,[-1,np.multiply(*Y[0].shape)])
+			target = np.reshape(Y, [-1,np.multiply(*Y[0].shape)])
 			
 			self.feed_dict = {self.input_layer: inp,
 							  self.target: target}

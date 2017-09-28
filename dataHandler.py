@@ -5,7 +5,7 @@ from scipy.misc import imresize, imread
 
 
 class DataHandler():
-	def __init__(self, in_path=None, split=0.7, batch_size=100, scaling=0.1):
+	def __init__(self, in_path=None, split=0.75, batch_size=100, scaling=0.1):
 		self.in_path = in_path
 		self.split = split
 		self.batch_size = batch_size
@@ -47,6 +47,8 @@ class DataHandler():
 
 			for p,d in zip(image_paths,depths):
 				if d.max()==0:
+					continue
+				if np.any(np.isnan(d)):
 					continue
 				data_holder[p] = [p,d]
 
@@ -100,6 +102,10 @@ class DataHandler():
 			for p,d in zip(image_paths,data):
 				d = imresize(d, self.scaling)/255
 				if d.max()==0:
+					continue
+				if d.mean()<0.1:
+					continue
+				if d.mean()>0.9:
 					continue
 				data_holder[p] = [p,d]
 
