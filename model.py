@@ -10,14 +10,14 @@ class Model():
 		self.dh = dataHandler
 		# graph parameters
 		self.size_patch_1 = 3
-		self.size_patch_2 = 5
-		self.size_patch_3 = 7
+		self.size_patch_2 = 3
+		self.size_patch_3 = 3
 		self.size_patch_4 = 5
 		self.size_patch_5 = 5
 
-		self.n_out_channels_1 = 16 # output channels frist layer
-		self.n_out_channels_2 = 32 # output channels second layer
-		self.n_out_channels_3 = 64 # output channels third layer
+		self.n_out_channels_1 = 64 # output channels frist layer
+		self.n_out_channels_2 = 64 # output channels second layer
+		self.n_out_channels_3 = 32 # output channels third layer
 		self.n_out_channels_4 = 128 # output channels fourth layer
 		self.n_out_channels_5 = 256 # output channels firth layer
 
@@ -51,46 +51,55 @@ class Model():
 										 strides=[1,2,2,1],
 										 padding='SAME')
 
-		self.conv1_drop = tf.nn.dropout(self.conv1_pool, 0.6)
+		self.conv1_drop = tf.nn.dropout(self.conv1_pool, 1.0)
 
 
 		'''
 		Second Layer
 		'''
+		self.conv2 = tf.layers.conv2d(self.conv1_drop,
+									  self.n_out_channels_2,
+									  [self.size_patch_2,self.size_patch_2],
+									  strides=[1,1],
+									  padding='SAME',
+									  activation=None)
+		'''
 		self.conv2 = tf.nn.conv2d(self.conv1_drop,
 								 tf.random_normal([self.size_patch_2,self.size_patch_2,self.n_out_channels_1,self.n_out_channels_2]),
 								 strides=[1,2,2,1],
 								 padding='SAME')
-
+		'''
 		self.conv2_pool = tf.nn.max_pool(self.conv2,
 										 ksize=[1,2,2,1],
 										 strides=[1,2,2,1],
 										 padding='SAME')
 
-		self.conv2_drop = tf.nn.dropout(self.conv2_pool, 0.6)
+		self.conv2_drop = tf.nn.dropout(self.conv2_pool, 1.0)
 
 
 		'''
 		Third Layer
 		'''
-		#self.conv3 = tf.layers.conv2d(self.conv2_drop,
-		#							64,
-		#						 [5,5],
-		#						 strides=[1,1],
-		#						 padding='SAME',
-		#						 activation=None)
+		self.conv3 = tf.layers.conv2d(self.conv2_drop,
+									  self.n_out_channels_3,
+									  [self.size_patch_3,self.size_patch_3],
+									  strides=[1,1],
+									  padding='SAME',
+									  activation=tf.nn.tanh)
+		'''
 		self.conv3 = tf.nn.conv2d(self.conv2_drop,
 								 tf.random_normal([self.size_patch_3,self.size_patch_3,self.n_out_channels_2,self.n_out_channels_3]),
 								 strides=[1,2,2,1],
 								 padding='SAME')
-		
+		'''
 		self.conv3_pool = tf.nn.max_pool(self.conv3,
 										 ksize=[1,2,2,1],
 										 strides=[1,2,2,1],
 										 padding='SAME')
 		
-		self.conv3_drop = tf.nn.dropout(self.conv3_pool, 0.6)
+		self.conv3_drop = tf.nn.dropout(self.conv3_pool, 1.0)
 
+		"""
 		'''
 		Fourth Layer
 		'''
@@ -104,7 +113,7 @@ class Model():
 										 strides=[1,2,2,1],
 										 padding='SAME')
 		'''
-		self.conv4_drop = tf.nn.dropout(self.conv4, 0.6)
+		self.conv4_drop = tf.nn.dropout(self.conv4, 1.0)
 		'''
 		Fifth Layer
 		'''
@@ -118,26 +127,26 @@ class Model():
 										 strides=[1,2,2,1],
 										 padding='SAME')
 		'''
-		self.conv5_drop = tf.nn.dropout(self.conv5, 0.6)
-
+		self.conv5_drop = tf.nn.dropout(self.conv5, 1.0)
+		"""
 		'''
 		Fully Connected Output Layer
 		'''
 		# reshape layer before
-		tmp = np.prod(self.conv5_drop.shape.as_list()[1:])
-		self.flat = tf.reshape(self.conv5_drop, [-1, tmp])
-
+		tmp = np.prod(self.conv3_drop.shape.as_list()[1:])
+		self.flat = tf.reshape(self.conv3_drop, [-1, tmp])
+		"""
 		self.dense1 = tf.layers.dense(self.flat,
 									  self.n_dense_neurons_1,
 									  activation=tf.nn.relu)
-		self.dense1_drop = tf.nn.dropout(self.dense1, 0.6)
+		self.dense1_drop = tf.nn.dropout(self.dense1, 1.0)
 		
 		self.dense2 = tf.layers.dense(self.dense1_drop,
 									  self.n_dense_neurons_2,
 									  activation=tf.nn.tanh)
-		self.dense2_drop = tf.nn.dropout(self.dense2, 0.6)
-
-		self.dense_out = tf.layers.dense(self.dense2_drop, 
+		self.dense2_drop = tf.nn.dropout(self.dense2, 1.0)
+		"""
+		self.dense_out = tf.layers.dense(self.flat, 
 									self.n_dense_neurons_out, 
 									activation=tf.nn.sigmoid)
 
@@ -149,12 +158,12 @@ class Model():
 		D_sum = tf.reduce_sum(D)
 		D_sq = tf.square(D)
 
-		D_sum_sq = tf.square(D_sum)
-		D_sq_sum = tf.reduce_sum(D_sq)
+		D_sum_sq = tf.reduce_sum(D_sq)
+		D_sq_sum = tf.square(D_sum)
 
-		self.loss = tf.reduce_mean(D_sum_sq/self.n_outputs - D_sq_sum/(2*self.n_outputs**2))
+		self.loss = tf.reduce_mean(D_sum_sq/self.n_outputs + D_sq_sum/(self.n_outputs**2))
 		#self.loss = D_sq_sum
-		self.train_step = tf.train.AdamOptimizer(1e-2).minimize(self.loss)
+		self.train_step = tf.train.AdamOptimizer(learning_rate=.5*1e-4).minimize(self.loss)
 
 		self.sess = tf.Session()
 		self.init = tf.global_variables_initializer()
