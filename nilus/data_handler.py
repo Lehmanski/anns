@@ -4,20 +4,22 @@ import os.path
 import numpy as np
 import scipy.misc
 import binvox_rw
+import scipy.ndimage
 
 class Data_handler():
-    def __init__(self, in_path=None, split=0.7, scaling=0.1, batch_size=10):
+    def __init__(self, in_path=None, split=0.7, imgScaling=0.1, voxelDescaling = 4, batch_size=10):
         """ returns a list of filedirectories where the data is stored """
         fileDirs = []
-        ra.seed(2)
+        #ra.seed(2)
         for filename in glob.iglob(in_path+'*.npz', recursive=True):
             dir = os.path.dirname(filename)
             fileDirs.append(dir)
         ra.shuffle(fileDirs)
         self.data = fileDirs[0:int(len(fileDirs)*split)]
         self.test_data = fileDirs[int(len(fileDirs)*split):len(fileDirs)]
-        self.scaling = scaling
+        self.scaling = imgScaling
         self.batch_size = batch_size
+        self.voxelDescale = voxelDescaling
 
     def getTrainingData(self):
         return self.data
@@ -40,10 +42,9 @@ class Data_handler():
                 depth_maps[l].append(np.asarray(image))
             with open(fileDir+ '/model.binvox', 'rb') as f:
                 model = binvox_rw.read_as_3d_array(f)
-                arr = model.data.flatten().astype(float)
-                ####################################################
-                ############### DELETE LATER #######################
-                batch_target.append(arr[0:int(64*64*64/100)])
+                outarr = scipy.ndimage.zoom(model.data, (1/self.voxelDescale))
+                arr = outarr.flatten().astype(float)
+                batch_target.append(arr)
         return np.asarray(depth_maps), np.asarray(batch_target)
 
     def getInputShape(self):
@@ -58,6 +59,7 @@ class Data_handler():
         with open(fileDir + '/model.binvox', 'rb') as f:
             model = binvox_rw.read_as_3d_array(f)
             arr = model.data
-        return arr.shape
+        outarr = scipy.ndimage.zoom(model.data, (1 / self.voxelDescale))
+        return outarr.shape
 
 
