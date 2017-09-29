@@ -7,7 +7,7 @@ class InputLayer():
 	def __init__(self,
 				input_shape,
 				kernel_size = [5,5],
-				out_channels = 8,
+				out_channels = 16,
 				strides = [1,2,2,1],
 				padding = 'SAME'):
 
@@ -114,7 +114,7 @@ class Model():
 																		  logits=self.dense_out,
 																		  ))
 
-		self.train_step = tf.train.AdamOptimizer(learning_rate=0.01).minimize(self.loss)
+		self.train_step = tf.train.AdamOptimizer(learning_rate=0.005).minimize(self.loss)
 
 		'''
 		Initialization
