@@ -28,20 +28,20 @@ class main():
 		'''
 		# tensorflow part
 		'''
-		M = Model(input_shape=X[0].shape, output_shape=Y[0].shape, dataHandler=dh)
-
+		self.M = Model(input_shape=X[0].shape, output_shape=Y[0].shape, dataHandler=dh)
+		return 
 		for r in range(200):
 			for e in [bs]:
-				M.training(epochs=e)
-			M.predict('test')
+				self.M.training(epochs=e)
+			self.M.predict('test')
 			#
 			tmp = []
-			for o in M.output[0]:
-				tmp.append(o.reshape(M.output_shape))
+			for o in self.M.output[0]:
+				tmp.append(o.reshape(self.M.output_shape))
 
 			o = np.hstack(tmp)
-			p = np.hstack(M.Y.reshape(-1,*M.output_shape))
-			q = np.hstack(M.X)
+			p = np.hstack(self.M.Y.reshape(-1,*self.M.output_shape))
+			q = np.hstack(self.M.X)
 			#
 			f, ax = plt.subplots(1,1)
 			#
