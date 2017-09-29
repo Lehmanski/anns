@@ -25,7 +25,22 @@ class Data_handler():
         return self.data
 
     def getTestData(self):
-        return self.test_data
+        target = []
+        depth_maps = [[] for i in range(8)]  # hardcoded for now
+        for i in range(len(self.test_data)):
+            fileDir = self.test_data[i]
+            npz = np.load(fileDir + '/depth_maps.npz')
+            for l in range(len(npz.files)):
+                # append the flattened depth image
+                image = npz['arr_' + str(l)]
+                image = scipy.misc.imresize(image, self.scaling, interp='bilinear', mode=None)
+                depth_maps[l].append(np.asarray(image))
+            with open(fileDir+ '/model.binvox', 'rb') as f:
+                model = binvox_rw.read_as_3d_array(f)
+                outarr = scipy.ndimage.zoom(model.data, (1/self.voxelDescale))
+                arr = outarr.flatten().astype(float)
+                target.append(arr)
+        return np.asarray(depth_maps), np.asarray(target)
 
     def get_batch(self):
         """ returns batches in form of np arrays of shape (batch_size 8*540*960, btach_size 64*64*64) """

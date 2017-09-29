@@ -7,7 +7,7 @@ class Model():
 
 
     def cnn_forDepthMaps(self, input):
-        """Model function for CNN."""
+        """Model function for CNN single DepthMaps"""
         self.convo1 = tf.nn.conv2d(input,
                      tf.random_normal([5, 5, 1, 10]),
                      strides=[1, 2, 2, 1],
@@ -34,14 +34,14 @@ class Model():
         """Model function for dense CNN"""
         self.convo1 = tf.layers.conv2d(inputs=input,
                                       filters=10,
-                                      kernel_size=[5, 5],
+                                      kernel_size=[3, 3],
                                       padding="same",
                                       activation=tf.nn.relu)
         self.convo1_pool = tf.nn.max_pool(self.convo1,
                                          ksize=[1, 2, 2, 1],
                                          strides=[1, 2, 2, 1],
                                          padding='SAME')
-        self.convo1_drop = tf.nn.dropout(self.convo1_pool, 0.8)
+        self.convo1_drop = tf.nn.dropout(self.convo1_pool, 0.6)
         self.convo2 = tf.layers.conv2d(inputs=self.convo1_drop,
                                        filters=32,
                                        kernel_size=[3, 3],
@@ -87,9 +87,9 @@ class Model():
         self.conv7 = self.cnn_forDepthMaps(self.input_layer_7)
 
         self.conc_layer = tf.concat([self.conv0, self.conv1, self.conv2, self.conv3, self.conv4,
-                                self.conv5, self.conv6, self.conv7], 0)
+                                self.conv5, self.conv6, self.conv7], 1)
 
-        self.dense_out = self.dense_layer(self.conv0)
+        self.dense_out = self.dense_layer(self.conc_layer)
 
         with tf.name_scope('loss'):
 
@@ -104,7 +104,7 @@ class Model():
         self.sess = tf.Session()
 
         self.sess.run(tf.global_variables_initializer())
-
+        l_hist = []
         for e in range(iteration):
             self.batch = self.dh.get_batch()
             batch_size = len(self.batch[0][0])
@@ -116,7 +116,7 @@ class Model():
             inp_5 = np.reshape(self.batch[0][5], [batch_size, *self.input_shape, 1])
             inp_6 = np.reshape(self.batch[0][6], [batch_size, *self.input_shape, 1])
             inp_7 = np.reshape(self.batch[0][7], [batch_size, *self.input_shape, 1])
-            l = self.sess.run([self.loss],
+            l,_ = self.sess.run([self.loss, self.train_step],
                           feed_dict= {self.input_layer_0: inp_0,
                                       self.input_layer_1: inp_1,
                                       self.input_layer_2: inp_2,
@@ -126,42 +126,44 @@ class Model():
                                       self.input_layer_6: inp_6,
                                       self.input_layer_7: inp_7,
                                       self.output:self.batch[1]})
-            if iteration%10 == 0:
-                print(l)
+            l_hist.append(l)
+            print(l)
+            if e%10 == 0:
+                print('mean over 10: {0}'.format(np.mean(l_hist)))
+                l_hist = []
 
-        def predict(self, type='test'):
-            if type == 'test':
-                print("TO DO")
-            elif type == 'train':
-                X, Y = self.dh.get_batch
+    def predict(self, type='test'):
+        if type == 'test':
+            self.batch = self.dh.getTestData()
+        elif type == 'train':
+            self.batch = self.dh.get_batch()
 
-            self.batch = self.dh.get_batch()
-            batch_size = len(self.batch[0][0])
-            inp_0 = np.reshape(self.batch[0][0], [batch_size, *self.input_shape, 1])
-            inp_1 = np.reshape(self.batch[0][1], [batch_size, *self.input_shape, 1])
-            inp_2 = np.reshape(self.batch[0][2], [batch_size, *self.input_shape, 1])
-            inp_3 = np.reshape(self.batch[0][3], [batch_size, *self.input_shape, 1])
-            inp_4 = np.reshape(self.batch[0][4], [batch_size, *self.input_shape, 1])
-            inp_5 = np.reshape(self.batch[0][5], [batch_size, *self.input_shape, 1])
-            inp_6 = np.reshape(self.batch[0][6], [batch_size, *self.input_shape, 1])
-            inp_7 = np.reshape(self.batch[0][7], [batch_size, *self.input_shape, 1])
-            self.batch = self.dh.get_batch()
-            batch_size = len(self.batch[0][0])
-            inp_0 = np.reshape(self.batch[0][0], [batch_size, *self.input_shape, 1])
-            inp_1 = np.reshape(self.batch[0][1], [batch_size, *self.input_shape, 1])
-            inp_2 = np.reshape(self.batch[0][2], [batch_size, *self.input_shape, 1])
-            inp_3 = np.reshape(self.batch[0][3], [batch_size, *self.input_shape, 1])
-            inp_4 = np.reshape(self.batch[0][4], [batch_size, *self.input_shape, 1])
-            inp_5 = np.reshape(self.batch[0][5], [batch_size, *self.input_shape, 1])
-            inp_6 = np.reshape(self.batch[0][6], [batch_size, *self.input_shape, 1])
-            inp_7 = np.reshape(self.batch[0][7], [batch_size, *self.input_shape, 1])
-            l = self.sess.run([self.loss],
-                              feed_dict={self.input_layer_0: inp_0,
-                                         self.input_layer_1: inp_1,
-                                         self.input_layer_2: inp_2,
-                                         self.input_layer_3: inp_3,
-                                         self.input_layer_4: inp_4,
-                                         self.input_layer_5: inp_5,
-                                         self.input_layer_6: inp_6,
-                                         self.input_layer_7: inp_7,
-                                         self.output: self.batch[1]})
+        batch_size = len(self.batch[0][0])
+        inp_0 = np.reshape(self.batch[0][0], [batch_size, *self.input_shape, 1])
+        inp_1 = np.reshape(self.batch[0][1], [batch_size, *self.input_shape, 1])
+        inp_2 = np.reshape(self.batch[0][2], [batch_size, *self.input_shape, 1])
+        inp_3 = np.reshape(self.batch[0][3], [batch_size, *self.input_shape, 1])
+        inp_4 = np.reshape(self.batch[0][4], [batch_size, *self.input_shape, 1])
+        inp_5 = np.reshape(self.batch[0][5], [batch_size, *self.input_shape, 1])
+        inp_6 = np.reshape(self.batch[0][6], [batch_size, *self.input_shape, 1])
+        inp_7 = np.reshape(self.batch[0][7], [batch_size, *self.input_shape, 1])
+        self.batch = self.dh.get_batch()
+        batch_size = len(self.batch[0][0])
+        inp_0 = np.reshape(self.batch[0][0], [batch_size, *self.input_shape, 1])
+        inp_1 = np.reshape(self.batch[0][1], [batch_size, *self.input_shape, 1])
+        inp_2 = np.reshape(self.batch[0][2], [batch_size, *self.input_shape, 1])
+        inp_3 = np.reshape(self.batch[0][3], [batch_size, *self.input_shape, 1])
+        inp_4 = np.reshape(self.batch[0][4], [batch_size, *self.input_shape, 1])
+        inp_5 = np.reshape(self.batch[0][5], [batch_size, *self.input_shape, 1])
+        inp_6 = np.reshape(self.batch[0][6], [batch_size, *self.input_shape, 1])
+        inp_7 = np.reshape(self.batch[0][7], [batch_size, *self.input_shape, 1])
+        self.final_output = self.sess.run([self.dense_out],
+                          feed_dict={self.input_layer_0: inp_0,
+                                     self.input_layer_1: inp_1,
+                                     self.input_layer_2: inp_2,
+                                     self.input_layer_3: inp_3,
+                                     self.input_layer_4: inp_4,
+                                     self.input_layer_5: inp_5,
+                                     self.input_layer_6: inp_6,
+                                     self.input_layer_7: inp_7,
+                                     self.output: self.batch[1]})
