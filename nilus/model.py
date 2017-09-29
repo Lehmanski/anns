@@ -30,28 +30,44 @@ class Model():
                                     activation=tf.nn.sigmoid)
         return dense_out
 
+    def buildModel(self):
+        self.training_data = self.dh.getTrainingData()
+        self.input_shape = self.dh.getInputShape()
+        self.output_shape = int(np.prod(self.dh.getOutputShape())/100)
+
+
+        self.input_layer = tf.placeholder(tf.float32,[None,*self.input_shape,1])
+        self.output = tf.placeholder(tf.float32,[None,self.output_shape])
+
+        self.conv1 = tf.nn.conv2d(self.input_layer,
+                                  tf.random_normal([3,3,1,10]),
+                                  strides=[1,2,2,1],
+                                  padding='SAME')
+
+
+        tmp = np.prod(self.conv1.shape.as_list()[1:])
+        self.flat = tf.reshape(self.conv1, [-1,tmp])
+
+        self.dense_out = tf.layers.dense(self.flat,
+                                     self.output_shape, 
+                                    activation=tf.nn.sigmoid)
+
+        self.loss = tf.reduce_mean(tf.square(tf.subtract(self.dense_out, self.output)))
+
+        self.train_step = tf.train.AdamOptimizer(learning_rate=0.01).minimize(self.loss)
+
 
     def training(self, iteration = 10):
-        training_data = self.dh.getTrainingData()
 
-        x_0 = tf.placeholder(tf.float32, [None, *self.dh.getInputShape()])
-        y_ = tf.placeholder(tf.float32, [None, len(training_data[1][0])])
+        self.sess = tf.Session()
 
-        conv1 = self.cnn_forDepthMaps(x_0)
-        dense = self.dense_layer(conv1)
+        self.sess.run(tf.global_variables_initializer())
 
-        with tf.name_scope('loss'):
-            loss = tf.reduce_mean(tf.square(dense- y_))
-            with tf.name_scope('adam_optimizer'):
-                train_step = tf.train.AdamOptimizer(1e-4).minimize(loss)
+        for e in range(100):
+            self.batch = self.dh.get_batch()
+            inp = np.reshape(self.batch[0][0],[2,54,96,1])
+            l = self.sess.run([self.loss],
+                          feed_dict= {self.input_layer:inp,
+                                      self.output:self.batch[1]})
+            print(l)
 
-        with tf.Session() as sess:
-            print("sess started")
-            sess.run(tf.global_variables_initializer())
-            for i in range(iteration):
-                batch = self.dh.get_batch()
-                input = np.reshape(batch[0], [-1, *batch[0][0].shape, 1])
-                _, lossl = train_step.run([train_step, loss], feed_dict={
-                    x_0: input,
-                    y_: batch[1]})
-                print(lossl)
